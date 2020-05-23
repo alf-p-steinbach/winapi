@@ -16,9 +16,8 @@ namespace winapi::gui {
     class Child_window
         : public Displayable_window
     {
-        using Base = Displayable_window;
-
     public:
+        using Base = Displayable_window;
         static constexpr auto& windowclass_name = "Child-window";
 
     protected:
@@ -29,25 +28,50 @@ namespace winapi::gui {
             void override_values( WNDCLASS& params ) const
                 override
             { params.lpszClassName = windowclass_name; }
+
+        public:
+            Window_class() { m_outer = "Child_window"; }
         };
 
-         class Api_window_factory
-            : public Base::Api_window_factory
+        class Api_window_factory:
+            public Base::Api_window_factory
         {
         public:
+            using Base = Child_window::Base::Api_window_factory;
+
             auto windowclass() const
                 -> Windowclass_id override
             { return Window_class().id(); }
 
             auto fixed_window_style() const
                 -> Window_style override
-            { return WS_CHILD | WS_CLIPSIBLINGS; }
+            { return WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE; }
 
-            auto new_api_window( const HWND parent_window )
+            void fail_if_not_ok( const CREATESTRUCT& params ) const
+                override
+            {
+                Base::fail_if_not_ok( params );
+
+                hopefully( (params.style & WS_CHILD) != 0 )
+                    or $fail( "A child window must have the WS_CHILD style." );
+                hopefully( params.hwndParent != 0 )
+                    or $fail( "A child window must have a parent window." );
+                hopefully( (params.style & WS_POPUP) == 0 )
+                    or $fail( "The WS_POPUP style is not meaningful for a child window." );
+            }
+
+            auto new_api_window( const HWND parent_window, const POINT& position, const POINT& size )
                 -> Window_owner_handle
             {
                 CREATESTRUCT params = fixed_creation_params();
-                params.hwndParent = parent_window;
+                $with( params ) {
+                    _.x             = position.x;
+                    _.y             = position.y;
+                    _.cx            = size.x;
+                    _.cy            = size.y;
+                    _.hwndParent    = parent_window;
+                }
+                fail_if_not_ok( params );
                 return create_window( params );
             }
         };  // class Api_window_factory
@@ -59,8 +83,8 @@ namespace winapi::gui {
                 or $fail( "SetWindowText failed" );
         }
 
-        Child_window( const HWND parent_window ):
-            Base( tag::Wrap(), Api_window_factory().new_api_window( parent_window ) )
+        Child_window( const Type_<Displayable_window*> p_parent, const POINT& position, const POINT& size ):
+            Base( tag::Wrap(), Api_window_factory().new_api_window( p_parent->handle(), position, size ) )
         {}
 
         Child_window( tag::Wrap, Window_owner_handle window_handle ):

@@ -29,11 +29,15 @@ namespace winapi::gui {
             void override_values( WNDCLASS& params ) const
                 override
             { params.lpszClassName = windowclass_name; }
+
+        public:
+            Window_class() { m_outer = "Top_level_window"; }
         };
 
         class Api_window_factory
             : public Base::Api_window_factory
         {
+        using Base = Base::Api_window_factory;
         public:
             auto windowclass() const
                 -> Windowclass_id override
@@ -43,11 +47,24 @@ namespace winapi::gui {
                 -> Window_style override
             { return WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN; }
 
+            void fail_if_not_ok( const CREATESTRUCT& params ) const
+                override
+            {
+                Base::fail_if_not_ok( params );
+                hopefully( (params.style & WS_CHILD) == 0 )
+                    or $fail( "A top level window can't have the WS_CHILD style." );
+                hopefully( (params.style & WS_CLIPSIBLINGS) == 0 )
+                    or $fail( "The WS_CLIPSIBLINGS style is not meaningful for a top level window." );
+                static_assert( WS_TABSTOP == WS_MAXIMIZEBOX );  // I.e. don't err on use of that style.
+                static_assert( WS_GROUP == WS_MINIMIZEBOX );    // I.e. don't err on use of that style.
+            }
+
             auto new_api_window( const C_str title )
                 -> Window_owner_handle
             {
                 CREATESTRUCT params = fixed_creation_params();
                 params.lpszName = title;
+                fail_if_not_ok( params );
                 return create_window( params );
             }
         };  // class Api_window_factory

@@ -19,6 +19,9 @@ namespace winapi::gui {
             void override_values( WNDCLASS& params ) const
                 override
             { params.lpszClassName = windowclass_name; }
+
+        public:
+            Window_class(){ m_outer = "Main_window"; }
         };
 
         class Api_window_factory
