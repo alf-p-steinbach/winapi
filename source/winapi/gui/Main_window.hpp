@@ -8,14 +8,26 @@ namespace winapi::gui {
     {
         using Base = Top_level_window;
 
+    public:
+        static constexpr auto& windowclass_name = "Main-window";
+
     protected:
+        class Window_class:
+            public Base::Window_class
+        {
+        protected:
+            void override_values( WNDCLASS& params ) const
+                override
+            { params.lpszClassName = windowclass_name; }
+        };
+
         class Api_window_factory
             : public Base::Api_window_factory
         {
         public:
-            auto windowclass_name() const -> C_str
-                override
-            { return "Main-window"; }
+            auto windowclass() const
+                -> Windowclass_id override
+            { return Window_class().id(); }
         };  // class Api_window_factory
 
         void on_wm_destroy()
@@ -34,11 +46,11 @@ namespace winapi::gui {
 
     public:
         Main_window( const C_str title = "<untitled>" ):
-            Base( Api_window_factory().new_api_window( title ) )
+            Base( tag::Wrap(), Api_window_factory().new_api_window( title ) )
         {}
 
-        Main_window( Window_owner_handle window_handle ):
-            Base( move( window_handle ) )
+        Main_window( tag::Wrap, Window_owner_handle window_handle ):
+            Base( tag::Wrap(), move( window_handle ) )
         {}
     };
 

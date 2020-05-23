@@ -10,7 +10,7 @@ namespace winapi::gui {
     $use_std( vector );
 
     namespace impl {
-        auto CALLBACK enabled_thread_main_window_callback(
+        auto inline CALLBACK emwit_callback(
             const HWND      window,
             const LPARAM    param
             ) -> BOOL
@@ -21,15 +21,15 @@ namespace winapi::gui {
         }
     }  // namespace impl
 
-    inline auto enabled_thread_main_window()
+    inline auto enabled_main_window_in_thread()
         -> HWND
     {
         vector<HWND> handles;
         ::EnumThreadWindows(
             GetCurrentThreadId(),
-            &impl::enabled_thread_main_window_callback,
+            &impl::emwit_callback,
             reinterpret_cast<LPARAM>( &handles )
-        );
+            );
         if( handles.size() == 1 and ::IsWindowEnabled( handles.front() ) ) {
             return handles.front();
         }
@@ -38,7 +38,7 @@ namespace winapi::gui {
                 char name[128];
                 const int n_chars = ::GetClassName( window, name, sizeof( name ) );
                 if( n_chars > 0 ) {
-                    if( strcmp( name, gui::Main_window::class_name ) == 0 ) {
+                    if( strcmp( name, gui::Main_window::windowclass_name ) == 0 ) {
                         return window;
                     }
                 }

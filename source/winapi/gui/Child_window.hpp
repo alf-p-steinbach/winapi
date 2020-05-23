@@ -13,13 +13,13 @@ namespace winapi::gui {
     $use_cppx( C_str, Type_ );
     $use_std( move );
 
-    class Top_level_window
+    class Child_window
         : public Displayable_window
     {
         using Base = Displayable_window;
 
     public:
-        static constexpr auto& windowclass_name = "Top-level-window";
+        static constexpr auto& windowclass_name = "Child-window";
 
     protected:
         class Window_class:
@@ -31,7 +31,7 @@ namespace winapi::gui {
             { params.lpszClassName = windowclass_name; }
         };
 
-        class Api_window_factory
+         class Api_window_factory
             : public Base::Api_window_factory
         {
         public:
@@ -41,29 +41,29 @@ namespace winapi::gui {
 
             auto fixed_window_style() const
                 -> Window_style override
-            { return WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN; }
+            { return WS_CHILD | WS_CLIPSIBLINGS; }
 
-            auto new_api_window( const C_str title )
+            auto new_api_window( const HWND parent_window )
                 -> Window_owner_handle
             {
                 CREATESTRUCT params = fixed_creation_params();
-                params.lpszName = title;
+                params.hwndParent = parent_window;
                 return create_window( params );
             }
         };  // class Api_window_factory
 
     public:
-        void set_title( const C_str title )
+        void set_text( const C_str text )
         {
-            ::SetWindowText( *this, title )
+            ::SetWindowText( *this, text )
                 or $fail( "SetWindowText failed" );
         }
 
-        Top_level_window( const C_str title = "<untitled>" ):
-            Base( tag::Wrap(), Api_window_factory().new_api_window( title ) )
+        Child_window( const HWND parent_window ):
+            Base( tag::Wrap(), Api_window_factory().new_api_window( parent_window ) )
         {}
 
-        Top_level_window( tag::Wrap, Window_owner_handle window_handle ):
+        Child_window( tag::Wrap, Window_owner_handle window_handle ):
             Base( tag::Wrap(), move( window_handle ) )
         {}
     };

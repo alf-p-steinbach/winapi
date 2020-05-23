@@ -2,8 +2,8 @@
 #include <cppx-core-language/all.hpp>
 
 #include <winapi-header-wrappers/commctrl-h.hpp>
-#include <winapi/text/encoding-conversions.hpp>             // winapi::text::to_wide
-#include <winapi/gui/enabled_thread_main_window.hpp>        // winapi::gui::enabled_thread_main_window
+#include <winapi/text/encoding-conversions.hpp>                             // winapi::text::to_wide
+#include <winapi/gui/windowing-support/enabled_main_window_in_thread.hpp>   // winapi::gui::enabled_main_window_in_thread
 
 #include <string_view>
 #include <variant>
@@ -52,7 +52,7 @@ namespace winapi::gui {
         };
 
         const bool  owner_specified = (desired_owner_window != 0);
-        const HWND  owner_window    = (owner_specified? desired_owner_window: enabled_thread_main_window());
+        const HWND  owner_window    = (owner_specified? desired_owner_window: enabled_main_window_in_thread());
 
         //const HRESULT hr = TaskDialog(
         //    owner_window,

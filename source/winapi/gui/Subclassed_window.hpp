@@ -7,6 +7,8 @@
 #include <winapi/gui/windowing-support/Window_subclassing.hpp>
 #include <winapi/gui/windowing-support/Window_owner_handle.hpp>
 
+$define_tag( Wrap );
+
 namespace winapi::gui {
     $use_cppx( No_copy_or_move );
     $use_std( forward, move );
@@ -18,7 +20,7 @@ namespace winapi::gui {
         Window_subclassing      m_subclassing;
 
     protected:
-        Subclassed_window( Window_owner_handle window_handle )
+        Subclassed_window( tag::Wrap, Window_owner_handle window_handle )
             : m_subclassing( move( window_handle ), this )
         {}
 
