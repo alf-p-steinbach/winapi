@@ -3,6 +3,7 @@
 
 #include <winapi/gui/Child_window.hpp>
 
+// This is a comment.
 namespace winapi::gui {
 
     class Control:
