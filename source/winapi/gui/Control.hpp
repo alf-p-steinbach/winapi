@@ -8,7 +8,7 @@ namespace winapi::gui {
     class Control:
         public Child_window
     {
-    public: 
+    public:
         using Base = Child_window;
         static constexpr auto& windowclass_name = "Control";
 
@@ -25,9 +25,6 @@ namespace winapi::gui {
                 params.hbrBackground    = sys_color_brush( COLOR_3DFACE );
                 params.lpszClassName    = windowclass_name;
             }
-
-        public:
-            Window_class() { m_outer = "Control"; }
         };
 
         class Api_window_factory:
@@ -40,10 +37,10 @@ namespace winapi::gui {
                 -> Windowclass_id override
             { return Window_class().id(); }
 
-            void fail_if_not_ok( const CREATESTRUCT& params ) const
+            void fail_if_obviously_wrong( const CREATESTRUCT& params ) const
                 override
             {
-                Base::fail_if_not_ok( params );
+                Base::fail_if_obviously_wrong( params );
 
                 const auto ws_title = WS_CAPTION & ~WS_BORDER;  // A.k.a. WS_DLGFRAME.
                 hopefully( (params.style & ws_title) == 0 )

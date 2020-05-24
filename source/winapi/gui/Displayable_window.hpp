@@ -27,8 +27,6 @@ namespace winapi::gui {
         class Window_class
         {
         protected:
-            C_str m_outer = "Displayable_window";
-
             static auto sys_color_brush( const intptr_t system_color_id )
                 -> HBRUSH
             { return reinterpret_cast<HBRUSH>( system_color_id + 1 ); }
@@ -113,7 +111,7 @@ namespace winapi::gui {
                 return params;
             }
 
-            virtual void fail_if_not_ok( const CREATESTRUCT& params ) const
+            virtual void fail_if_obviously_wrong( const CREATESTRUCT& params ) const
             { $is_unused( params ); }  // Signals ungood params by throwing.
         };
 

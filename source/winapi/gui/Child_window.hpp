@@ -21,6 +21,8 @@ namespace winapi::gui {
         static constexpr auto& windowclass_name = "Child-window";
 
     protected:
+        Displayable_window*     m_parent;
+
         class Window_class:
             public Base::Window_class
         {
@@ -28,9 +30,6 @@ namespace winapi::gui {
             void override_values( WNDCLASS& params ) const
                 override
             { params.lpszClassName = windowclass_name; }
-
-        public:
-            Window_class() { m_outer = "Child_window"; }
         };
 
         class Api_window_factory:
@@ -47,10 +46,10 @@ namespace winapi::gui {
                 -> Window_style override
             { return WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE; }
 
-            void fail_if_not_ok( const CREATESTRUCT& params ) const
+            void fail_if_obviously_wrong( const CREATESTRUCT& params ) const
                 override
             {
-                Base::fail_if_not_ok( params );
+                Base::fail_if_obviously_wrong( params );
 
                 hopefully( (params.style & WS_CHILD) != 0 )
                     or $fail( "A child window must have the WS_CHILD style." );
@@ -71,24 +70,30 @@ namespace winapi::gui {
                     _.cy            = size.y;
                     _.hwndParent    = parent_window;
                 }
-                fail_if_not_ok( params );
+                fail_if_obviously_wrong( params );
                 return create_window( params );
             }
         };  // class Api_window_factory
 
     public:
+        auto parent() const
+            -> Displayable_window*
+        { return m_parent; }
+
         void set_text( const C_str text )
         {
             ::SetWindowText( *this, text )
                 or $fail( "SetWindowText failed" );
         }
 
-        Child_window( const Type_<Displayable_window*> p_parent, const POINT& position, const POINT& size ):
-            Base( tag::Wrap(), Api_window_factory().new_api_window( p_parent->handle(), position, size ) )
+        Child_window( const Type_<Displayable_window*> parent, const POINT& position, const POINT& size ):
+            Base( tag::Wrap(), Api_window_factory().new_api_window( parent->handle(), position, size ) ),
+            m_parent( parent )
         {}
 
         Child_window( tag::Wrap, Window_owner_handle window_handle ):
-            Base( tag::Wrap(), move( window_handle ) )
+            Base( tag::Wrap(), move( window_handle ) ),
+            m_parent( nullptr )     // TODO: consider looking up the C++ object.
         {}
     };
 
