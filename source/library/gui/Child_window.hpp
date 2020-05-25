@@ -14,17 +14,16 @@ namespace winapi::gui {
     $use_std( move );
 
     class Child_window
-        : public Displayable_window
+        : public Extends_<Displayable_window>
     {
     public:
-        using Base = Displayable_window;
         static constexpr auto& windowclass_name = "Child-window";
 
     protected:
         Displayable_window*     m_parent;
 
         class Window_class:
-            public Base::Window_class
+            public Extends_<Base_::Window_class>
         {
         protected:
             void override_values( WNDCLASS& params ) const
@@ -33,11 +32,9 @@ namespace winapi::gui {
         };
 
         class Api_window_factory:
-            public Base::Api_window_factory
+            public Extends_<Base_::Api_window_factory>
         {
         public:
-            using Base = Child_window::Base::Api_window_factory;
-
             auto windowclass() const
                 -> Windowclass_id override
             { return Window_class().id(); }
@@ -49,7 +46,7 @@ namespace winapi::gui {
             void fail_if_obviously_wrong( const CREATESTRUCT& params ) const
                 override
             {
-                Base::fail_if_obviously_wrong( params );
+                Base_::fail_if_obviously_wrong( params );
 
                 hopefully( (params.style & WS_CHILD) != 0 )
                     or $fail( "A child window must have the WS_CHILD style." );
@@ -87,12 +84,12 @@ namespace winapi::gui {
         }
 
         Child_window( const Type_<Displayable_window*> parent, const POINT& position, const POINT& size ):
-            Base( tag::Wrap(), Api_window_factory().new_api_window( parent->handle(), position, size ) ),
+            Base_( tag::Wrap(), Api_window_factory().new_api_window( parent->handle(), position, size ) ),
             m_parent( parent )
         {}
 
         Child_window( tag::Wrap, Window_owner_handle window_handle ):
-            Base( tag::Wrap(), move( window_handle ) ),
+            Base_( tag::Wrap(), move( window_handle ) ),
             m_parent( nullptr )     // TODO: consider looking up the C++ object.
         {}
     };

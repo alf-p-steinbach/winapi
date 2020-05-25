@@ -10,20 +10,18 @@
 
 namespace winapi::gui {
     using namespace cppx::x_throwing;
-    $use_cppx( C_str, Type_ );
+    $use_cppx( C_str, Extends_, Type_ );
     $use_std( move );
 
     class Top_level_window
-        : public Displayable_window
+        : public Extends_<Displayable_window>
     {
-        using Base = Displayable_window;
-
     public:
         static constexpr auto& windowclass_name = "Top-level-window";
 
     protected:
         class Window_class:
-            public Base::Window_class
+            public Extends_<Base_::Window_class>
         {
         protected:
             void override_values( WNDCLASS& params ) const
@@ -32,9 +30,8 @@ namespace winapi::gui {
         };
 
         class Api_window_factory
-            : public Base::Api_window_factory
+            : public Extends_<Base_::Api_window_factory>
         {
-        using Base = Base::Api_window_factory;
         public:
             auto windowclass() const
                 -> Windowclass_id override
@@ -47,7 +44,7 @@ namespace winapi::gui {
             void fail_if_obviously_wrong( const CREATESTRUCT& params ) const
                 override
             {
-                Base::fail_if_obviously_wrong( params );
+                Base_::fail_if_obviously_wrong( params );
                 hopefully( (params.style & WS_CHILD) == 0 )
                     or $fail( "A top level window can't have the WS_CHILD style." );
                 hopefully( (params.style & WS_CLIPSIBLINGS) == 0 )
@@ -74,11 +71,11 @@ namespace winapi::gui {
         }
 
         Top_level_window( const C_str title = "<untitled>" ):
-            Base( tag::Wrap(), Api_window_factory().new_api_window( title ) )
+            Base_( tag::Wrap(), Api_window_factory().new_api_window( title ) )
         {}
 
         Top_level_window( tag::Wrap, Window_owner_handle window_handle ):
-            Base( tag::Wrap(), move( window_handle ) )
+            Base_( tag::Wrap(), move( window_handle ) )
         {}
     };
 

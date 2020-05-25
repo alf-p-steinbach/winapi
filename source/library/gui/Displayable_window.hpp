@@ -9,15 +9,12 @@
 #include <typeindex>
 
 namespace winapi::gui {
-    $use_cppx( Map_ );
+    $use_cppx( Extends_, Map_ );
     $use_std( type_index );
 
     class Displayable_window
-        : public Subclassed_window
+        : public Extends_<Subclassed_window>
     {
-    public:
-        using Base = Subclassed_window;
-
     protected:
         virtual void paint( const PAINTSTRUCT& paint_info )
         {
@@ -153,11 +150,11 @@ namespace winapi::gui {
                 WINAPI_CASE_WM( CLOSE, m, on_wm_close );
             }
 
-            return Base::on_message( m );
+            return Base_::on_message( m );
         }
 
         Displayable_window( tag::Wrap, Window_owner_handle window_handle )
-            : Base( tag::Wrap(), move( window_handle ) )
+            : Base_( tag::Wrap(), move( window_handle ) )
         {
             set_default_font( the_default_gui_font() );
         }
