@@ -56,15 +56,15 @@ namespace winapi::gui {
                     or $fail( "The WS_POPUP style is not meaningful for a child window." );
             }
 
-            auto new_api_window( const HWND parent_window, const POINT& position, const POINT& size )
+            auto new_api_window( const HWND parent_window, const POINT& position, const SIZE& size )
                 -> Window_owner_handle
             {
                 CREATESTRUCT params = fixed_creation_params();
                 $with( params ) {
                     _.x             = position.x;
                     _.y             = position.y;
-                    _.cx            = size.x;
-                    _.cy            = size.y;
+                    _.cx            = size.cx;
+                    _.cy            = size.cy;
                     _.hwndParent    = parent_window;
                 }
                 fail_if_obviously_wrong( params );
@@ -83,7 +83,7 @@ namespace winapi::gui {
                 or $fail( "SetWindowText failed" );
         }
 
-        Child_window( const Type_<Displayable_window*> parent, const POINT& position, const POINT& size ):
+        Child_window( const Type_<Displayable_window*> parent, const POINT& position, const SIZE& size ):
             Base_( tag::Wrap(), Api_window_factory().new_api_window( parent->handle(), position, size ) ),
             m_parent( parent )
         {}

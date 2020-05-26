@@ -1,17 +1,30 @@
 ﻿#pragma once    // Source encoding: UTF-8 with BOM (π is a lowercase Greek "pi").
 #include <cppx-core-language/all.hpp>
 
+#include <cv-win/Image_displayer.hpp>
 #include <winapi/gui/Control.hpp>
 
-#include <utility>
+#include <memory>       // std::shared_ptr
 
 namespace winapi::gui {
+    $use_std( shared_ptr );
+    using cv_win::Abstract_image_displayer;
 
     class Image_display_control:
         public Extends_<Control>
     {
     public:
         static constexpr auto& windowclass_name = "Image-display-control";
+
+    private:
+        shared_ptr<const Abstract_image_displayer>  m_image_displayer;
+
+        void paint( const PAINTSTRUCT& paint_info )
+            override
+        {
+            const HDC dc = paint_info.hdc;
+            m_image_displayer->display_on( dc );
+        }
 
     protected:
         class Window_class:
@@ -35,13 +48,45 @@ namespace winapi::gui {
             { return Window_class().id(); }
         };
 
+        auto on_message( const Message& m )
+            -> LRESULT override
+        {
+            switch( m.message_id ) {
+                WINAPI_CASE_WM( PAINT, m, on_wm_paint );
+            }
+            return Base_::on_message( m );
+        }
+
     public:
-        Image_display_control( const Type_<Displayable_window*> p_parent, const POINT& position, const POINT& size ):
-            Base_( tag::Wrap(), Api_window_factory().new_api_window( p_parent->handle(), position, size ) )
+        Image_display_control(
+            const Type_<Displayable_window*>                    parent,
+            const shared_ptr<const Abstract_image_displayer>    displayer,
+            const POINT&                                        position,
+            const SIZE&                                         size
+            ):
+            Base_( tag::Wrap(), Api_window_factory().new_api_window(
+                parent->handle(), position, size
+                ) ),
+            m_image_displayer( displayer )
         {}
 
-        Image_display_control( tag::Wrap, Window_owner_handle window_handle ):
-            Base_( tag::Wrap(), move( window_handle ) )
+        Image_display_control(
+            const Type_<Displayable_window*>                    parent,
+            const shared_ptr<const Abstract_image_displayer>    displayer,
+            const POINT&                                        position    = {}
+            ):
+            Base_( tag::Wrap(), Api_window_factory().new_api_window(
+                parent->handle(), position, SIZE{ displayer->width(), displayer->height() }
+                ) ),
+            m_image_displayer( displayer )
+        {}
+
+        Image_display_control(
+            tag::Wrap, Window_owner_handle                      window_handle,
+            const shared_ptr<const Abstract_image_displayer>    displayer
+            ):
+            Base_( tag::Wrap(), move( window_handle ) ),
+            m_image_displayer( displayer )
         {}
     };
 

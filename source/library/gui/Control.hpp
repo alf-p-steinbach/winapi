@@ -49,7 +49,7 @@ namespace winapi::gui {
         };
 
     public:
-        Control( const Type_<Displayable_window*> p_parent, const POINT& position, const POINT& size ):
+        Control( const Type_<Displayable_window*> p_parent, const POINT& position, const SIZE& size ):
             Base_( tag::Wrap(), Api_window_factory().new_api_window( p_parent->handle(), position, size ) )
         {}
 
