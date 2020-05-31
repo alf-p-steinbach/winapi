@@ -2,7 +2,7 @@
 #include <cppx-core-language/all.hpp>
 
 #include <winapi-header-wrappers/windows-h.hpp>
-#include <winapi/gui/Main_window.hpp>                   // winapi::Main_window
+#include <winapi/gui/top-level-windows/Main_window.hpp>     // winapi::Main_window
 
 #include <vector>
 

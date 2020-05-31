@@ -12,6 +12,9 @@ namespace winapi::gui {
         static constexpr auto& windowclass_name = "Control";
 
     protected:
+        Control( tag::Wrap, Window_owner_handle window_handle ):
+            Base_( tag::Wrap(), move( window_handle ) )
+        {}
 
         class Window_class:
             public Extends_<Base_::Window_class>
@@ -31,11 +34,13 @@ namespace winapi::gui {
             public Extends_<Base_::Api_window_factory>
         {
         public:
-            using Base = Control::Base::Api_window_factory;
-
             auto windowclass() const
                 -> Windowclass_id override
             { return Window_class().id(); }
+
+            auto fixed_window_style() const
+                -> Window_style override
+            { return Base_::fixed_window_style() & ~WS_CLIPSIBLINGS; }
 
             void fail_if_obviously_wrong( const CREATESTRUCT& params ) const
                 override
@@ -51,10 +56,6 @@ namespace winapi::gui {
     public:
         Control( const Type_<Displayable_window*> p_parent, const POINT& position, const SIZE& size ):
             Base_( tag::Wrap(), Api_window_factory().new_api_window( p_parent->handle(), position, size ) )
-        {}
-
-        Control( tag::Wrap, Window_owner_handle window_handle ):
-            Base_( tag::Wrap(), move( window_handle ) )
         {}
     };
 

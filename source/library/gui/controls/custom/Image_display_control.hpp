@@ -65,7 +65,9 @@ namespace winapi::gui {
             const SIZE&                                         size
             ):
             Base_( tag::Wrap(), Api_window_factory().new_api_window(
-                parent->handle(), position, size
+                parent->handle(),
+                position,
+                size
                 ) ),
             m_image_displayer( displayer )
         {}
@@ -75,10 +77,9 @@ namespace winapi::gui {
             const shared_ptr<const Abstract_image_displayer>    displayer,
             const POINT&                                        position    = {}
             ):
-            Base_( tag::Wrap(), Api_window_factory().new_api_window(
-                parent->handle(), position, SIZE{ displayer->width(), displayer->height() }
-                ) ),
-            m_image_displayer( displayer )
+            Image_display_control(
+                parent, displayer, position, SIZE{ displayer->width(), displayer->height() }
+                )
         {}
 
         Image_display_control(

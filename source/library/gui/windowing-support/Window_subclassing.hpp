@@ -29,6 +29,7 @@ namespace winapi::gui {
             ) -> LRESULT
         {
             $is_unused( subclass_id );
+            static_assert( sizeof( data ) == sizeof( void* ) );
             const auto p_handler = reinterpret_cast<Abstract_message_handler*>( data );
             // assert( p_handler );
             try {
@@ -47,13 +48,13 @@ namespace winapi::gui {
         }
 
     public:
-        ~Window_subclassing()
+        static auto message_handler_for( const HWND window ) noexcept
+            -> Abstract_message_handler*
         {
-            if( m_window != 0 ) {
-                const HWND doomed = m_window;
-                end_subclassing();
-                ::DestroyWindow( doomed );
-            }
+            DWORD_PTR data;
+            static_assert( sizeof( data ) == sizeof( void* ) );
+            const bool success = ::GetWindowSubclass( window, &subclass_proc, common_subclass_id, &data );
+            return (success? reinterpret_cast<Abstract_message_handler*>( data ) : nullptr);
         }
 
         Window_subclassing(
@@ -68,23 +69,25 @@ namespace winapi::gui {
                 &subclass_proc,
                 common_subclass_id,
                 reinterpret_cast<DWORD_PTR>( p_handler )
-                )
+            )
                 or $fail( "SetWindowSubclass failed" );
             window_handle.release();
         }
 
-        void release()
+        ~Window_subclassing()
         {
             if( m_window != 0 ) {
+                const HWND doomed = m_window;
                 end_subclassing();
+                ::DestroyWindow( doomed );
             }
         }
 
-        auto handle() const
-            -> HWND
-        { return m_window; }
+        void release() { if( m_window != 0 ) { end_subclassing(); } }
 
-        auto original_handling_of( const Message& m ) const
+        auto handle() const -> HWND { return m_window; }
+
+        auto apply_original_handling_of( const Message& m ) const
             -> LRESULT
         {
             //TODO: check for propagated x.

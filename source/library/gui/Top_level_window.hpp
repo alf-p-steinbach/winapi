@@ -20,6 +20,10 @@ namespace winapi::gui {
         static constexpr auto& windowclass_name = "Top-level-window";
 
     protected:
+        Top_level_window( tag::Wrap, Window_owner_handle window_handle ):
+            Base_( tag::Wrap(), move( window_handle ) )
+        {}
+
         class Window_class:
             public Extends_<Base_::Window_class>
         {
@@ -64,19 +68,15 @@ namespace winapi::gui {
         };  // class Api_window_factory
 
     public:
+        Top_level_window( const C_str title = "<untitled>" ):
+            Base_( tag::Wrap(), Api_window_factory().new_api_window( title ) )
+        {}
+
         void set_title( const C_str title )
         {
             ::SetWindowText( *this, title )
                 or $fail( "SetWindowText failed" );
         }
-
-        Top_level_window( const C_str title = "<untitled>" ):
-            Base_( tag::Wrap(), Api_window_factory().new_api_window( title ) )
-        {}
-
-        Top_level_window( tag::Wrap, Window_owner_handle window_handle ):
-            Base_( tag::Wrap(), move( window_handle ) )
-        {}
     };
 
 }  // namespace winapi::gui

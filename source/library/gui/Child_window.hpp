@@ -1,6 +1,8 @@
 ﻿#pragma once    // Source encoding: UTF-8 with BOM (π is a lowercase Greek "pi").
 #include <cppx-core-language/all.hpp>
 
+#include <c/assert.hpp>
+
 #include <string_view>
 #include <tuple>            // std::tie
 #include <utility>          // std::move
@@ -20,7 +22,11 @@ namespace winapi::gui {
         static constexpr auto& windowclass_name = "Child-window";
 
     protected:
-        Displayable_window*     m_parent;
+        Child_window( tag::Wrap, Window_owner_handle window_handle ):
+            Base_( tag::Wrap(), move( window_handle ) )
+        {
+            assert( parent_handle() != 0 );
+        }
 
         class Window_class:
             public Extends_<Base_::Window_class>
@@ -73,25 +79,31 @@ namespace winapi::gui {
         };  // class Api_window_factory
 
     public:
-        auto parent() const
+        Child_window(
+            const Type_<Displayable_window*>    parent,
+            const POINT&                        position,
+            const SIZE&                         size
+        ):
+            Base_( tag::Wrap(), Api_window_factory().new_api_window( parent->handle(), position, size ) )
+        {}
+
+        auto parent_handle() const noexcept
+            -> HWND
+        { return ::GetAncestor( *this, GA_PARENT ); }
+
+        auto parent() const noexcept
             -> Displayable_window*
-        { return m_parent; }
+        {
+            return dynamic_cast<Displayable_window*>(
+                Subclassed_window::cpp_wrapper_for( parent_handle() )
+                );
+        }
 
         void set_text( const C_str text )
         {
             ::SetWindowText( *this, text )
                 or $fail( "SetWindowText failed" );
         }
-
-        Child_window( const Type_<Displayable_window*> parent, const POINT& position, const SIZE& size ):
-            Base_( tag::Wrap(), Api_window_factory().new_api_window( parent->handle(), position, size ) ),
-            m_parent( parent )
-        {}
-
-        Child_window( tag::Wrap, Window_owner_handle window_handle ):
-            Base_( tag::Wrap(), move( window_handle ) ),
-            m_parent( nullptr )     // TODO: consider looking up the C++ object.
-        {}
     };
 
 }  // namespace winapi::gui

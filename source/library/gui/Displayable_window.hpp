@@ -16,6 +16,12 @@ namespace winapi::gui {
         : public Extends_<Subclassed_window>
     {
     protected:
+        Displayable_window( tag::Wrap, Window_owner_handle window_handle )
+            : Base_( tag::Wrap(), move( window_handle ) )
+        {
+            set_default_font( the_default_gui_font() );
+        }
+
         virtual void paint( const PAINTSTRUCT& paint_info )
         {
             $is_unused( paint_info );
@@ -47,7 +53,7 @@ namespace winapi::gui {
 
                 override_values( params );
 
-                ATOM const result = ::RegisterClass( &params );
+                const ATOM result = ::RegisterClass( &params );
                 hopefully( result != 0 )
                     or $fail( "RegisterClass failed" );
                 return result;
@@ -151,12 +157,6 @@ namespace winapi::gui {
             }
 
             return Base_::on_message( m );
-        }
-
-        Displayable_window( tag::Wrap, Window_owner_handle window_handle )
-            : Base_( tag::Wrap(), move( window_handle ) )
-        {
-            set_default_font( the_default_gui_font() );
         }
 
     public:
