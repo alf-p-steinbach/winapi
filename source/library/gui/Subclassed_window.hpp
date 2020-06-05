@@ -59,7 +59,7 @@ namespace winapi::gui {
     public:
         static auto cpp_wrapper_for( const HWND window ) noexcept
             -> Subclassed_window*
-        { return dynamic_cast<Subclassed_window*>( Window_subclassing::message_handler_for( window ) ); }
+        { return static_cast<Subclassed_window*>( Window_subclassing::message_handler_for( window ) ); }
 
         auto handle() const
             -> HWND

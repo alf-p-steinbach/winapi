@@ -115,7 +115,7 @@ namespace winapi::gui {
             }
 
             virtual void fail_if_obviously_wrong( const CREATESTRUCT& params ) const
-            { $is_unused( params ); }  // Signals ungood params by throwing.
+            { $is_unused( params ); }  // Should signal ungood params by throwing.
         };
 
         virtual void close()
@@ -171,6 +171,22 @@ namespace winapi::gui {
         void set_default_font( const HFONT font )
         {
             process_message( WM_SETFONT, reinterpret_cast<WPARAM>( font ) );
+        }
+
+        auto client_rect() const
+            -> RECT
+        {
+            RECT r;
+            ::GetClientRect( *this, &r ) or $fail( "::GetClientRect failed" );
+            return r;
+        }
+
+        auto window_rect() const
+            -> RECT
+        {
+            RECT r;
+            ::GetWindowRect( *this, &r ) or $fail( "::GetWindowRect failed" );
+            return r;
         }
     };
 }  // namespace winapi::gui

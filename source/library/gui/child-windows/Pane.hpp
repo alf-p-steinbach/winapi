@@ -14,6 +14,29 @@ namespace winapi::gui {
             Base_( tag::Wrap(), move( window_handle ) )
         {}
 
+        class Window_class:
+            public Extends_<Base_::Window_class>
+        {
+        protected:
+            void override_values( WNDCLASS& params ) const
+                override
+            {
+                Base_::override_values( params );
+
+                params.hbrBackground    = sys_color_brush( COLOR_3DFACE );
+                params.lpszClassName    = windowclass_name;
+            }
+        };
+
+        class Api_window_factory:
+            public Extends_<Base_::Api_window_factory>
+        {
+        public:
+            auto windowclass() const
+                -> Windowclass_id override
+            { return Window_class().id(); }
+        };
+
     public:
         Pane(
             const Type_<Displayable_window*>    parent,

@@ -62,11 +62,20 @@ namespace winapi::gui {
                     or $fail( "The WS_POPUP style is not meaningful for a child window." );
             }
 
-            auto new_api_window( const HWND parent_window, const POINT& position, const SIZE& size )
+            auto new_api_window(
+                const HWND          parent_window,
+                const POINT&        position,
+                const SIZE&         size,
+                const Window_style  child_kind_styles = 0
+                )
                 -> Window_owner_handle
             {
                 CREATESTRUCT params = fixed_creation_params();
                 $with( params ) {
+                    assert( LOWORD( _.style ) == 0 );
+                    assert( HIWORD( child_kind_styles ) == 0 );
+
+                    _.style         |= child_kind_styles;
                     _.x             = position.x;
                     _.y             = position.y;
                     _.cx            = size.cx;
