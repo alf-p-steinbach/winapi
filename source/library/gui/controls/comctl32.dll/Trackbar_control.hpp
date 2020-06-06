@@ -4,29 +4,27 @@
 #include <winapi-header-wrappers/commctrl-h.hpp>
 
 namespace winapi::gui {
-    $use_cppx( Truth );
+    $use_cppx( Bitset_, is_in, Truth );
 
     class Trackbar_control:
         public Extends_<Control>
     {
     public:
-        struct Styles{ enum Enum{
-            vertical            = 0x01,
-            manual_ticks        = 0x02,
-            ticks_ul            = 0x04,
-            ticks_dr            = 0x08,
-            ticks_both_sides    = ticks_ul | ticks_dr,
-            _ }; };
+        struct Styles{ enum Enum{ vertical, manual_ticks, ticks_ul, ticks_dr, _ }; };
         static constexpr int n_styles = Styles::_;
 
+        static constexpr auto ticks_both_sides = Bitset_<Styles::Enum>( tag::Compile_time(),
+            Styles::ticks_ul, Styles::ticks_dr
+            );
+
     private:
-        static auto creation_style_bits_from( const Styles::Enum styles )
+        static auto creation_style_bits_from( const Bitset_<Styles::Enum> styleset )
             -> WORD
         {
-            const Truth is_vertical         = (styles & Styles::vertical) != 0;
-            const Truth has_manual_ticks    = (styles & Styles::manual_ticks) != 0;
-            const Truth has_ticks_ul        = (styles & Styles::ticks_ul) != 0;
-            const Truth has_ticks_dr        = (styles & Styles::ticks_dr) != 0;
+            const Truth is_vertical         = is_in( styleset, Styles::vertical );
+            const Truth has_manual_ticks    = is_in( styleset, Styles::manual_ticks );
+            const Truth has_ticks_ul        = is_in( styleset, Styles::ticks_ul );
+            const Truth has_ticks_dr        = is_in( styleset, Styles::ticks_dr );
             const Truth has_ticks_bs        = has_ticks_ul and has_ticks_dr;
 
             WORD bits = (is_vertical? TBS_VERT|TBS_DOWNISLEFT : TBS_HORZ);
@@ -61,10 +59,10 @@ namespace winapi::gui {
             const Type_<Displayable_window*>    p_parent,
             const POINT&                        position,
             const SIZE&                         size,
-            const Styles::Enum                  styles  = {}
+            const Bitset_<Styles::Enum>         styleset = {}
             ):
             Base_( tag::Wrap(), Api_window_factory().new_api_window(
-                p_parent->handle(), position, size, creation_style_bits_from( styles ) )
+                p_parent->handle(), position, size, creation_style_bits_from( styleset ) )
             )
         {}
 
