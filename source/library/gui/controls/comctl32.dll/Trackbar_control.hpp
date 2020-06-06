@@ -12,7 +12,7 @@ namespace winapi::gui {
     public:
         struct Styles{ enum Enum{
             vertical            = 0x01,
-            autoticks           = 0x02,
+            manual_ticks        = 0x02,
             ticks_ul            = 0x04,
             ticks_dr            = 0x08,
             ticks_both_sides    = ticks_ul | ticks_dr,
@@ -23,13 +23,15 @@ namespace winapi::gui {
         static auto creation_style_bits_from( const Styles::Enum styles )
             -> WORD
         {
-            const Truth is_vertical     = (styles & Styles::vertical) != 0;
-            const Truth has_ticks_ul    = (styles & Styles::ticks_ul) != 0;
-            const Truth has_ticks_dr    = (styles & Styles::ticks_dr) != 0;
-            const Truth has_ticks_bs    = has_ticks_ul and has_ticks_dr;
+            const Truth is_vertical         = (styles & Styles::vertical) != 0;
+            const Truth has_manual_ticks    = (styles & Styles::manual_ticks) != 0;
+            const Truth has_ticks_ul        = (styles & Styles::ticks_ul) != 0;
+            const Truth has_ticks_dr        = (styles & Styles::ticks_dr) != 0;
+            const Truth has_ticks_bs        = has_ticks_ul and has_ticks_dr;
 
             WORD bits = (is_vertical? TBS_VERT|TBS_DOWNISLEFT : TBS_HORZ);
-            if( (styles & Styles::autoticks) != 0 ) {
+
+            if( not has_manual_ticks ) {
                 bits |= TBS_AUTOTICKS;
             }
             if( has_ticks_bs ) {
@@ -60,7 +62,7 @@ namespace winapi::gui {
             const POINT&                        position,
             const SIZE&                         size,
             const Styles::Enum                  styles  = {}
-        ):
+            ):
             Base_( tag::Wrap(), Api_window_factory().new_api_window(
                 p_parent->handle(), position, size, creation_style_bits_from( styles ) )
             )
@@ -69,6 +71,25 @@ namespace winapi::gui {
         Trackbar_control( tag::Wrap, Window_owner_handle window_handle ):
             Base_( tag::Wrap(), move( window_handle ) )
         {}
+
+        auto has_autoticks() const
+            -> Truth
+        { return (styles() & TBS_AUTOTICKS) != 0; }
+
+        void set_range( const int first, const int last, const int tick_interval = 0 )
+        {
+            constexpr WORD max_word = WORD( -1 );
+            assert( 0 <= first and first < int( max_word ) );
+            assert( 0 <= last and last < int( max_word ) );
+            assert( 0 <= tick_interval and tick_interval < int( max_word ) );
+
+            if( tick_interval > 0 ) {
+                hopefully( has_autoticks() )
+                    or $fail( "Tick interval can only be specified for autoticks." );
+                process_message( TBM_SETTICFREQ, WPARAM( tick_interval ) );
+            }
+            process_message( TBM_SETRANGE, true, MAKELPARAM( first, last ) );
+        }
     };
 
     inline auto operator|(

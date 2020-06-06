@@ -4,7 +4,7 @@
 #include <functional>       // std::invoke
 #include <utility>          // std::(forward, move)
 
-#include <winapi/gui/windowing-support/Stylebits.hpp>
+#include <winapi/gui/windowing-support/Stylebits_.hpp>
 #include <winapi/gui/windowing-support/Window_subclassing.hpp>
 #include <winapi/gui/windowing-support/Window_owner_handle.hpp>
 
@@ -17,6 +17,8 @@ namespace winapi::gui {
     class Subclassed_window
         : protected Abstract_message_handler
         , public No_copy_or_move
+        , private Basic_stylebits_<Subclassed_window>
+        , private Extended_stylebits_<Subclassed_window>
     {
         Window_subclassing      m_subclassing;
 
@@ -57,6 +59,12 @@ namespace winapi::gui {
         }
 
     public:
+        using Basic_stylebits       = Basic_stylebits_<Subclassed_window>;
+        using Extended_stylebits    = Extended_stylebits_<Subclassed_window>;
+
+        friend class Basic_stylebits;           // Access to privately derived Subclassed_window.
+        friend class Extended_stylebits;        // Ditto.
+
         static auto cpp_wrapper_for( const HWND window ) noexcept
             -> Subclassed_window*
         { return static_cast<Subclassed_window*>( Window_subclassing::message_handler_for( window ) ); }
@@ -67,13 +75,10 @@ namespace winapi::gui {
 
         operator HWND() const { return handle(); }
 
-        auto styles()
-            -> Stylebits
-        { return Stylebits( handle(), Stylebits::Kind::classic ); }
-
-        auto ex_styles()
-            -> Stylebits
-        { return Stylebits( handle(), Stylebits::Kind::extended ); }
+        auto styles() const     -> const Basic_stylebits&       { return *this; }
+        auto styles()           ->       Basic_stylebits&       { return *this; }
+        auto ex_styles() const  -> const Extended_stylebits&    { return *this; }
+        auto ex_styles()        ->       Extended_stylebits&    { return *this; }
     };
 
 }  // namespace winapi::gui
