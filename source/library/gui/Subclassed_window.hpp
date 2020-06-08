@@ -14,11 +14,11 @@ namespace winapi::gui {
     $use_cppx( No_copy_or_move );
     $use_std( forward, move );
 
-    class Subclassed_window
-        : protected Abstract_message_handler
-        , public No_copy_or_move
-        , private Basic_stylebits_<Subclassed_window>
-        , private Extended_stylebits_<Subclassed_window>
+    class Subclassed_window:
+        protected Abstract_message_handler,
+        public No_copy_or_move,
+        private Basic_stylebits_<Subclassed_window>,
+        private Extended_stylebits_<Subclassed_window>
     {
         Window_subclassing      m_subclassing;
 
@@ -30,6 +30,11 @@ namespace winapi::gui {
         auto apply_original_handling_of( const Message& m )
             -> LRESULT
         { return m_subclassing.apply_original_handling_of( m ); }
+
+        static auto apply_original_handling_of(
+            Subclassed_window* window, const UINT msg, const WPARAM wp, const LPARAM ellp
+            ) -> LRESULT
+        { return window->apply_original_handling_of( Message{ window->handle(), msg, wp, ellp } ); }
 
         auto on_message( const Message& m )
             -> LRESULT override

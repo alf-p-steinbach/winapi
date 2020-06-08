@@ -4,10 +4,11 @@
 #include <winapi-header-wrappers/commctrl-h.hpp>
 
 #include <algorithm>        // std::swap
+#include <unordered_set>    // std::unordered_set
 
 namespace winapi::gui {
     $use_cppx( Bitset_, is_in, Truth );
-    $use_std( swap );
+    $use_std( swap, unordered_set );
 
     class Trackbar_control:
         public Extends_<Control>
@@ -20,7 +21,25 @@ namespace winapi::gui {
             Styles::ticks_ul, Styles::ticks_dr
             );
 
+        struct Observer
+        {
+            virtual void on_new_position_for( Trackbar_control& control, const int new_position ) = 0;
+        };
+
     private:
+        unordered_set<Observer*>    m_listeners;
+
+        auto on_custom_nm( const NMHDR& params_header )
+            -> optional<LRESULT> override
+        {
+            const auto& params = reinterpret_cast<const NMTRBTHUMBPOSCHANGING&>( params_header );
+
+            for( const Type_<Observer*> p_listener: m_listeners ) {
+                p_listener->on_new_position_for( *this, params.dwPos );
+            }
+            return 0;
+        }
+
         static auto creation_style_bits_from( const Bitset_<Styles::Enum> styleset )
             -> WORD
         {
@@ -90,6 +109,26 @@ namespace winapi::gui {
         Trackbar_control( tag::Wrap, Window_owner_handle window_handle ):
             Base_( tag::Wrap(), move( window_handle ) )
         {}
+
+        auto position() const
+            -> int
+        { return int( const_cast<Trackbar_control*>( this )->process_message( TBM_GETPOS ) ); }
+
+        void set_position( const int new_pos )
+        {
+            process_message( TBM_SETPOS, true, new_pos );
+        }
+            
+        void add_observer( const Type_<Observer*> p_observer )
+        {
+            m_listeners.insert( p_observer );
+            p_observer->on_new_position_for( *this, position() );
+        }
+
+        void remove_observer( const Type_<Observer*> p_observer )
+        {
+            m_listeners.erase( p_observer );
+        }
 
         auto has_autoticks() const
             -> Truth

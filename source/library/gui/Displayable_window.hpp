@@ -5,14 +5,49 @@
 #include <winapi/graphics/the_default_gui_font.hpp>
 #include <winapi/gui/Subclassed_window.hpp>
 #include <winapi/gui/windowing-support/Windowclass_id.hpp>
+#include <winapi/gui/windowing-support/Windowclass-util.hpp>        // windoclass_name_of
 
-#include <typeindex>
+#include <optional>             // std::optional
+#include <typeindex>            // std::typeindex
 
 namespace winapi::gui {
     $use_cppx( Extends_, Map_ );
-    $use_std( type_index );
+    $use_std( optional, type_index );
 
-    class Wm_paint_processing
+    class Displayable_window;
+
+    class Reflected_notification_handler
+    {
+        friend class Displayable_window;
+
+        using R = optional<LRESULT>;        // Empty means the message has not been handled.
+
+        virtual auto on_nm_char( const NMCHAR& ) -> R                                   { return {}; }
+        virtual auto on_nm_customdraw( const NMHDR& ) -> R                              { return {}; }
+        virtual auto on_nm_customtext( const NMCUSTOMTEXT& ) -> R                       { return {}; }
+        virtual auto on_nm_fontchanged( const NMHDR& ) -> R                             { return {}; }
+        virtual auto on_nm_getcustomsplitrect( const NMCUSTOMSPLITRECTINFO& ) -> R      { return {}; }
+        virtual auto on_nm_hover( const NMHDR& ) -> R                                   { return {}; }
+        virtual auto on_nm_keydown( const NMKEY& ) -> R                                 { return {}; }
+        virtual auto on_nm_killfocus( const NMHDR& ) -> R                               { return {}; }
+        virtual auto on_nm_ldown( const NMHDR& ) -> R                                   { return {}; }
+        virtual auto on_nm_nchittest( const NMMOUSE& ) -> R                             { return {}; }
+        virtual auto on_nm_outofmemory( const NMHDR& ) -> R                             { return {}; }
+        virtual auto on_nm_rdown( const NMHDR& ) -> R                                   { return {}; }
+        virtual auto on_nm_releasedcapture( const NMHDR& ) -> R                         { return {}; }
+        virtual auto on_nm_return( const NMHDR& ) -> R                                  { return {}; }
+        virtual auto on_nm_setcursor( const NMMOUSE& ) -> R                             { return {}; }
+        virtual auto on_nm_setfocus( const NMHDR& ) -> R                                { return {}; }
+        virtual auto on_nm_themechanged( const NMHDR& ) -> R                            { return {}; }
+        virtual auto on_nm_tooltipscreated( const NMHDR& ) -> R                         { return {}; }
+        virtual auto on_nm_tvstateimagechanging( const NMTVSTATEIMAGECHANGING& ) -> R   { return {}; }
+        virtual auto on_custom_nm( const NMHDR& ) -> R                                  { return {}; }
+
+    public:
+        virtual ~Reflected_notification_handler() = default;
+    };
+
+    class Wm_paint_handler
     {
         virtual void paint( const PAINTSTRUCT& paint_info ) = 0;
 
@@ -44,8 +79,8 @@ namespace winapi::gui {
         }
     };
 
-    class Displayable_window
-        : public Extends_<Subclassed_window>
+    class Displayable_window:
+        public Extends_<Subclassed_window>
     {
     protected:
         Displayable_window( tag::Wrap, Window_owner_handle window_handle )
@@ -152,9 +187,91 @@ namespace winapi::gui {
             DestroyWindow( *this );
         }
 
+        static auto dispatch_to_specific_func_in(
+            Reflected_notification_handler&     handler,
+            const NMHDR&                        params
+            ) -> optional<LRESULT>
+        {
+            #define INVOKE( func, Type ) \
+                handler.func( reinterpret_cast<const Type&>( params ) )
+            using Nm_csri = NMCUSTOMSPLITRECTINFO;
+
+            switch( params.code ) {
+                case NM_CHAR:                   { return INVOKE( on_nm_char, NMCHAR ); }
+                case NM_CUSTOMDRAW:             { return INVOKE( on_nm_customdraw, NMHDR ); }
+                case NM_FIRST-24:               { // Ambiguity introduced in Windows Vista.
+                    static_assert( NM_FIRST-24 == NM_CUSTOMTEXT );              // SysLink control.
+                    static_assert( NM_FIRST-24 == NM_TVSTATEIMAGECHANGING );    // TreeView control.
+
+                    // TODO: This logic is not tested per early June 2020.
+                    const string control_windowclass_name = windowclass_name_of( params.hwndFrom );
+                    if( control_windowclass_name == "SysLink" ) {               // WC_LINK is wide literal only.
+                        return handler.on_nm_customtext( reinterpret_cast<const NMCUSTOMTEXT&>( params ) );
+                    } else if( control_windowclass_name == WC_TREEVIEWA ) {
+                        return handler.on_nm_tvstateimagechanging(
+                            reinterpret_cast<const NMTVSTATEIMAGECHANGING&>( params )
+                        );
+                    } else {
+                        return {};
+                    }
+                }
+                case NM_FONTCHANGED:            { return INVOKE( on_nm_fontchanged, NMHDR ); }
+                case NM_GETCUSTOMSPLITRECT:     { return INVOKE( on_nm_getcustomsplitrect, Nm_csri ); }
+                case NM_HOVER:                  { return INVOKE( on_nm_hover, NMHDR ); }
+                case NM_KEYDOWN:                { return INVOKE( on_nm_keydown, NMKEY ); }
+                case NM_KILLFOCUS:              { return INVOKE( on_nm_killfocus, NMHDR ); }
+                case NM_LDOWN:                  { return INVOKE( on_nm_ldown, NMHDR ); }
+                case NM_NCHITTEST:              { return INVOKE( on_nm_nchittest, NMMOUSE ); }
+                case NM_OUTOFMEMORY:            { return INVOKE( on_nm_outofmemory, NMHDR ); }
+                case NM_RDOWN:                  { return INVOKE( on_nm_rdown, NMHDR ); }
+                case NM_RELEASEDCAPTURE:        { return INVOKE( on_nm_releasedcapture, NMHDR ); }
+                case NM_RETURN:                 { return INVOKE( on_nm_return, NMHDR ); }
+                case NM_SETCURSOR:              { return INVOKE( on_nm_setcursor, NMMOUSE ); }
+                case NM_SETFOCUS:               { return INVOKE( on_nm_setfocus, NMHDR ); }
+                case NM_THEMECHANGED:           { return INVOKE( on_nm_themechanged, NMHDR ); }
+                case NM_TOOLTIPSCREATED:        { return INVOKE( on_nm_tooltipscreated, NMHDR ); }
+
+                default:                        {
+                    return handler.on_custom_nm( params );
+                }
+            }
+            #undef INVOKE
+        }
+
+        virtual void on_command( const int id )
+        {
+            $is_unused( id );
+        }
+
+        virtual void on_notification( const HWND control, const int id )
+        {
+            $is_unused( control );   $is_unused( id );
+        }
+
         void on_wm_close()
         {
             close();
+        }
+
+        void on_wm_command( const int id, const HWND control, const UINT notification_code )
+        {
+            if( control != 0 ) {
+                on_notification( control, notification_code );
+            } else {
+                on_command( id );
+            }
+        }
+
+        auto on_wm_notify( const int control_id, const Type_<const NMHDR*> p_params )
+            -> LRESULT
+        {
+            const Type_<Subclassed_window*> p_wrapper = cpp_wrapper_for( p_params->hwndFrom );
+            if( const auto p_handler = dynamic_cast<Reflected_notification_handler*>( p_wrapper ) ) {
+                if( const auto optional_result = dispatch_to_specific_func_in( *p_handler, *p_params ) ) {
+                    return optional_result.value();
+                }
+            }
+            return FORWARD_WM_NOTIFY( this, control_id, p_params, apply_original_handling_of );
         }
 
         auto on_message( const Message& m )
@@ -164,7 +281,9 @@ namespace winapi::gui {
                 #if 0
                     case WM_PAINT: return process_wm_paint( handle(), m.word_param, m.long_param );
                 #endif
+                WINAPI_CASE_WM( COMMAND, m, on_wm_command );
                 WINAPI_CASE_WM( CLOSE, m, on_wm_close );
+                WINAPI_CASE_WM( NOTIFY, m, on_wm_notify );
             }
 
             return Base_::on_message( m );

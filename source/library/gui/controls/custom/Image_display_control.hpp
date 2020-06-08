@@ -12,7 +12,7 @@ namespace winapi::gui {
 
     class Image_display_control:
         public Extends_<Control>,
-        protected Wm_paint_processing
+        protected Wm_paint_handler
     {
     public:
         static constexpr auto& windowclass_name = "Image-display-control";

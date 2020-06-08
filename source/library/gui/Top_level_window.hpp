@@ -7,14 +7,15 @@
 
 #include <winapi/gui/Displayable_window.hpp>
 #include <winapi/gui/windowing-support/create_window.hpp>
+#include <winapi-header-wrappers/commctrl-h.hpp>        // HANDLE_WM_NOTIFY
 
 namespace winapi::gui {
     using namespace cppx::x_throwing;
     $use_cppx( C_str, Extends_, Type_ );
     $use_std( move );
 
-    class Top_level_window
-        : public Extends_<Displayable_window>
+    class Top_level_window:
+        public Extends_<Displayable_window>
     {
     public:
         static constexpr auto& windowclass_name = "Top-level-window";
@@ -33,8 +34,8 @@ namespace winapi::gui {
             { params.lpszClassName = windowclass_name; }
         };
 
-        class Api_window_factory
-            : public Extends_<Base_::Api_window_factory>
+        class Api_window_factory:
+            public Extends_<Base_::Api_window_factory>
         {
         public:
             auto windowclass() const
