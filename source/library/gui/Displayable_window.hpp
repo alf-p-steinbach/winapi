@@ -12,6 +12,38 @@ namespace winapi::gui {
     $use_cppx( Extends_, Map_ );
     $use_std( type_index );
 
+    class Wm_paint_processing
+    {
+        virtual void paint( const PAINTSTRUCT& paint_info ) = 0;
+
+        void on_classic_wm_paint( const HWND window_handle )
+        {
+            struct Envelope
+            {
+                HWND            m_window_handle;
+                PAINTSTRUCT     m_info;
+
+                ~Envelope() { ::EndPaint( m_window_handle, &m_info ); }
+
+                explicit Envelope( const HWND w ):
+                    m_window_handle( w )
+                { ::BeginPaint( m_window_handle, &m_info ) or $fail( "BeginPaint failed" ); }
+            };
+
+            Envelope envelope( window_handle );
+            paint( envelope.m_info );
+        }
+
+    protected:
+        auto process_wm_paint( const HWND window_handle, const WPARAM word_param, const LPARAM long_param )
+            -> LRESULT
+        {
+            $is_unused( word_param );  $is_unused( long_param );    // word_param can indicate custom painting.
+            on_classic_wm_paint( window_handle );
+            return 0;
+        }
+    };
+
     class Displayable_window
         : public Extends_<Subclassed_window>
     {
@@ -20,11 +52,6 @@ namespace winapi::gui {
             : Base_( tag::Wrap(), move( window_handle ) )
         {
             set_default_font( the_default_gui_font() );
-        }
-
-        virtual void paint( const PAINTSTRUCT& paint_info )
-        {
-            $is_unused( paint_info );
         }
 
         class Window_class
@@ -60,6 +87,8 @@ namespace winapi::gui {
             }
 
         public:
+            virtual ~Window_class() = default;
+
             auto id() const
                 -> Windowclass_id
             {
@@ -128,30 +157,12 @@ namespace winapi::gui {
             close();
         }
 
-        void on_wm_paint( )
-        {
-            struct Envelope
-            {
-                HWND            window;
-                PAINTSTRUCT     info;
-
-                ~Envelope() { ::EndPaint( window, &info ); }
-
-                explicit Envelope( const HWND w ):
-                    window( w )
-                { ::BeginPaint( window, &info ) or $fail( "BeginPaint failed" ); }
-            };
-
-            Envelope envelope( handle() );
-            paint( envelope.info );
-        }
-
         auto on_message( const Message& m )
             -> LRESULT override
         {
             switch( m.message_id ) {
                 #if 0
-                    WINAPI_CASE_WM( PAINT, m, on_wm_paint );
+                    case WM_PAINT: return process_wm_paint( handle(), m.word_param, m.long_param );
                 #endif
                 WINAPI_CASE_WM( CLOSE, m, on_wm_close );
             }

@@ -11,7 +11,8 @@ namespace winapi::gui {
     using cv_win::Abstract_image_displayer;
 
     class Image_display_control:
-        public Extends_<Control>
+        public Extends_<Control>,
+        protected Wm_paint_processing
     {
     public:
         static constexpr auto& windowclass_name = "Image-display-control";
@@ -52,7 +53,7 @@ namespace winapi::gui {
             -> LRESULT override
         {
             switch( m.message_id ) {
-                WINAPI_CASE_WM( PAINT, m, on_wm_paint );
+                case WM_PAINT: return process_wm_paint( handle(), m.word_param, m.long_param );
             }
             return Base_::on_message( m );
         }

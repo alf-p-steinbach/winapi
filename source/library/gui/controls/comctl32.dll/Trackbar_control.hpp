@@ -3,8 +3,11 @@
 #include <winapi/gui/Control.hpp>
 #include <winapi-header-wrappers/commctrl-h.hpp>
 
+#include <algorithm>        // std::swap
+
 namespace winapi::gui {
     $use_cppx( Bitset_, is_in, Truth );
+    $use_std( swap );
 
     class Trackbar_control:
         public Extends_<Control>
@@ -44,6 +47,10 @@ namespace winapi::gui {
             return bits;
         }
 
+        static auto n_tick_rows( const Bitset_<Styles::Enum> styleset )
+            -> int
+        { return !!is_in( styleset, Styles::ticks_ul ) + !!is_in( styleset, Styles::ticks_dr ); }
+
     protected:
         class Api_window_factory:
             public Extends_<Base_::Api_window_factory>
@@ -55,14 +62,28 @@ namespace winapi::gui {
         };
 
     public:
+        static auto size_for( const int length, const Bitset_<Styles::Enum> styleset )
+            -> SIZE
+        {
+            const int thumb_length = 21;    // TODO, e.g. TBM_GETTHUMBLENGTH
+            SIZE result = { thumb_length + 10*n_tick_rows( styleset ), length };
+            if( not is_in( styleset, Styles::vertical ) ) {
+                swap( result.cx, result.cy );
+            }
+            return result;
+        }
+
         Trackbar_control(
             const Type_<Displayable_window*>    p_parent,
             const POINT&                        position,
-            const SIZE&                         size,
+            const int                           length,
             const Bitset_<Styles::Enum>         styleset = {}
             ):
             Base_( tag::Wrap(), Api_window_factory().new_api_window(
-                p_parent->handle(), position, size, creation_style_bits_from( styleset ) )
+                p_parent->handle(),
+                position,
+                size_for( length, styleset ),
+                creation_style_bits_from( styleset ) )
             )
         {}
 
