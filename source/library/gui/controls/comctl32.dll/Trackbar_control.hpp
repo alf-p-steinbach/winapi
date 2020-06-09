@@ -14,6 +14,8 @@ namespace winapi::gui {
         public Extends_<Control>
     {
     public:
+        static constexpr auto& windowclass_name = TRACKBAR_CLASS;       // "msctls_trackbar32"
+
         struct Styles{ enum Enum{ vertical, manual_ticks, ticks_ul, ticks_dr, _ }; };
         static constexpr int n_styles = Styles::_;
 
@@ -77,7 +79,7 @@ namespace winapi::gui {
         public:
             auto windowclass() const
                 -> Windowclass_id override
-            { return TRACKBAR_CLASS; }
+            { return windowclass_name; }
         };
 
     public:
