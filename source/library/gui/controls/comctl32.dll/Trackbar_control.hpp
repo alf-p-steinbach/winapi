@@ -3,11 +3,13 @@
 #include <winapi/gui/Control.hpp>
 #include <winapi-header-wrappers/commctrl-h.hpp>
 
+#include <c/stdint.hpp>     // int16_t
+
 #include <algorithm>        // std::swap
 #include <unordered_set>    // std::unordered_set
 
 namespace winapi::gui {
-    $use_cppx( Bitset_, is_in, Truth );
+    $use_cppx( Bitset_, is_in, max_, Sequence_, Truth );
     $use_std( swap, unordered_set );
 
     class Trackbar_control:
@@ -25,19 +27,36 @@ namespace winapi::gui {
 
         struct Observer
         {
-            virtual void on_new_position_for( Trackbar_control& control, const int new_position ) = 0;
+            virtual void on_new_position( const int new_position ) = 0;
         };
 
     private:
         unordered_set<Observer*>    m_listeners;
+        Truth                       m_is_reversed;
+        Sequence_<int>              m_range;
+
+        auto logical_pos_from_raw( int raw_pos ) const
+            -> int
+        {
+            const int   first       = m_range.first();
+            const int   last        = m_range.last();
+
+            const int clamped = (0?0
+                : raw_pos < first?       first
+                : raw_pos > last?        last
+                :                        raw_pos
+                );
+            return (m_is_reversed? last - (clamped - first) : clamped);
+        }
 
         auto on_custom_nm( const NMHDR& params_header )
             -> optional<LRESULT> override
         {
             const auto& params = reinterpret_cast<const NMTRBTHUMBPOSCHANGING&>( params_header );
 
+            const int pos = logical_pos_from_raw( params.dwPos );
             for( const Type_<Observer*> p_listener: m_listeners ) {
-                p_listener->on_new_position_for( *this, params.dwPos );
+                p_listener->on_new_position( pos );
             }
             return 0;
         }
@@ -51,8 +70,10 @@ namespace winapi::gui {
             const Truth has_ticks_dr        = is_in( styleset, Styles::ticks_dr );
             const Truth has_ticks_bs        = has_ticks_ul and has_ticks_dr;
 
-            WORD bits = (is_vertical? TBS_VERT|TBS_DOWNISLEFT : TBS_HORZ);
-
+            // TBS_DOWNISLEFT has no effect, it's an MS bug. TBS_REVERSED is just a flag.
+            WORD bits = TBS_NOTIFYBEFOREMOVE | WORD( +is_vertical*TBS_REVERSED );
+            
+            bits |= (is_vertical? TBS_VERT : TBS_HORZ);
             if( not has_manual_ticks ) {
                 bits |= TBS_AUTOTICKS;
             }
@@ -72,11 +93,25 @@ namespace winapi::gui {
             -> int
         { return !!is_in( styleset, Styles::ticks_ul ) + !!is_in( styleset, Styles::ticks_dr ); }
 
+        auto get_range() const
+            -> Sequence_<int>
+        {
+            auto& self = *const_cast<Trackbar_control*>( this );
+            return Sequence_<int>(
+                int( self.process_message( TBM_GETRANGEMIN ) ),
+                int( self.process_message( TBM_GETRANGEMAX ) )
+                );
+        }
+
     protected:
         class Api_window_factory:
             public Extends_<Base_::Api_window_factory>
         {
         public:
+            auto fixed_window_style() const
+                -> Window_style override
+            { return Base_::fixed_window_style() | 0; }
+
             auto windowclass() const
                 -> Windowclass_id override
             { return windowclass_name; }
@@ -105,16 +140,24 @@ namespace winapi::gui {
                 position,
                 size_for( length, styleset ),
                 creation_style_bits_from( styleset ) )
-            )
+                ),
+            m_is_reversed( (styles() & TBS_REVERSED) != 0 ),
+            m_range( get_range() )
         {}
 
         Trackbar_control( tag::Wrap, Window_owner_handle window_handle ):
-            Base_( tag::Wrap(), move( window_handle ) )
+            Base_( tag::Wrap(), move( window_handle ) ),
+            m_is_reversed( (styles() & TBS_REVERSED) != 0 ),
+            m_range( get_range() )
         {}
 
         auto position() const
             -> int
-        { return int( const_cast<Trackbar_control*>( this )->process_message( TBM_GETPOS ) ); }
+        {
+            return logical_pos_from_raw(
+                int( const_cast<Trackbar_control*>( this )->process_message( TBM_GETPOS ) )
+                );
+        }
 
         void set_position( const int new_pos )
         {
@@ -124,7 +167,7 @@ namespace winapi::gui {
         void add_observer( const Type_<Observer*> p_observer )
         {
             m_listeners.insert( p_observer );
-            p_observer->on_new_position_for( *this, position() );
+            p_observer->on_new_position( position() );
         }
 
         void remove_observer( const Type_<Observer*> p_observer )
@@ -136,28 +179,35 @@ namespace winapi::gui {
             -> Truth
         { return (styles() & TBS_AUTOTICKS) != 0; }
 
+        auto is_vertical() const
+            -> Truth
+        { return (styles() & TBS_VERT) != 0; }
+
         void set_range( const int first, const int last, const int tick_interval = 0 )
         {
-            constexpr WORD max_word = WORD( -1 );
-            assert( 0 <= first and first < int( max_word ) );
-            assert( 0 <= last and last < int( max_word ) );
-            assert( 0 <= tick_interval and tick_interval < int( max_word ) );
+            constexpr int max_value = max_<int16_t>;        // Signed, = 32767. Documentation ungood.
+            constexpr auto valid_range = Sequence_<int>( 0, max_value );
+
+            assert( is_in( valid_range, first ) );
+            assert( is_in( valid_range, last ) );
+            assert( first < last );
+            assert( is_in( valid_range, tick_interval ) );
 
             if( tick_interval > 0 ) {
                 hopefully( has_autoticks() )
                     or $fail( "Tick interval can only be specified for autoticks." );
                 process_message( TBM_SETTICFREQ, WPARAM( tick_interval ) );
             }
+
             process_message( TBM_SETRANGE, true, MAKELPARAM( first, last ) );
+            m_range = Sequence_<int>( first, last );
         }
     };
 
     inline auto operator|(
-        const Trackbar_control::Styles::Enum    a,
-        const Trackbar_control::Styles::Enum    b
-        ) -> Trackbar_control::Styles::Enum
-    {
-        return static_cast<Trackbar_control::Styles::Enum>( +a | +b );
-    }
+        const Trackbar_control::Styles::Enum a, const Trackbar_control::Styles::Enum b
+        )
+        -> Trackbar_control::Styles::Enum
+    { return static_cast<Trackbar_control::Styles::Enum>( +a | +b ); }
 
 }  // namespace winapi::gui
