@@ -13,7 +13,8 @@ namespace winapi::gui {
     $use_std( swap, unordered_set );
 
     class Trackbar_control:
-        public Extends_<Control>
+        public Extends_<Control>,
+        public Reflected_scroll_event_handler
     {
     public:
         static constexpr auto& windowclass_name = TRACKBAR_CLASS;       // "msctls_trackbar32"
@@ -48,21 +49,6 @@ namespace winapi::gui {
                 );
             return (m_is_reversed? last - (clamped - first) : clamped);
         }
-
-        //auto on_custom_nm( const NMHDR& params_header )
-        //    -> optional<LRESULT> override
-        //{
-        //    if( params_header.code ==  TRBN_THUMBPOSCHANGING ) {
-        //        const auto& params = reinterpret_cast<const NMTRBTHUMBPOSCHANGING&>( params_header );
-
-        //        const int pos = logical_pos_from_raw( params.dwPos );
-        //        for( const Type_<Observer*> p_listener: m_observers ) {
-        //            p_listener->on_new_position( pos );
-        //        }
-        //        return 0;
-        //    }
-        //    return {};
-        //}
 
         static auto creation_style_bits_from( const Bitset_<Styles::Enum> styleset )
             -> WORD
@@ -128,6 +114,7 @@ namespace winapi::gui {
         }
 
         void on_scroll( const UINT code, const int raw_pos )
+            override
         {
             switch( code ) {
                 case TB_THUMBPOSITION:
@@ -137,32 +124,9 @@ namespace winapi::gui {
                 }
                 default: {
                     assert( raw_pos == 0 );     // Per the documentation.
-                    //const int new_pos = (is_zero( raw_pos )? position() : logical_pos_from_raw( raw_pos ));
                     on_position_change( position() );
                 }
             }
-        }
-
-        void on_wm_hscroll( const HWND control, const UINT code, const int pos )
-        {
-            assert( control == handle() );
-            on_scroll( code, pos );
-        }
-
-        void on_wm_vscroll( const HWND control, const UINT code, const int pos )
-        {
-            assert( control == handle() );
-            on_scroll( code, pos );
-        }
-
-        auto on_message( const Message& m )
-            -> LRESULT override
-        {
-            switch( m.message_id ) {
-                WINAPI_CASE_WM( HSCROLL, m, on_wm_hscroll );
-                WINAPI_CASE_WM( VSCROLL, m, on_wm_vscroll );
-            }
-            return Base_::on_message( m );
         }
 
     public:
