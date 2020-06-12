@@ -16,9 +16,7 @@ namespace winapi::gui {
     $use_std( move );
 
     class Child_window:
-        public Extends_<Displayable_window>,
-        public Reflected_notification_handler
-
+        public Extends_<Displayable_window>
     {
     public:
         static constexpr auto& windowclass_name = "Child-window";

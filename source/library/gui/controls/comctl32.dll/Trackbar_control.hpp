@@ -31,7 +31,7 @@ namespace winapi::gui {
         };
 
     private:
-        unordered_set<Observer*>    m_listeners;
+        unordered_set<Observer*>    m_observers;
         Truth                       m_is_reversed;
         Sequence_<int>              m_range;
 
@@ -49,17 +49,20 @@ namespace winapi::gui {
             return (m_is_reversed? last - (clamped - first) : clamped);
         }
 
-        auto on_custom_nm( const NMHDR& params_header )
-            -> optional<LRESULT> override
-        {
-            const auto& params = reinterpret_cast<const NMTRBTHUMBPOSCHANGING&>( params_header );
+        //auto on_custom_nm( const NMHDR& params_header )
+        //    -> optional<LRESULT> override
+        //{
+        //    if( params_header.code ==  TRBN_THUMBPOSCHANGING ) {
+        //        const auto& params = reinterpret_cast<const NMTRBTHUMBPOSCHANGING&>( params_header );
 
-            const int pos = logical_pos_from_raw( params.dwPos );
-            for( const Type_<Observer*> p_listener: m_listeners ) {
-                p_listener->on_new_position( pos );
-            }
-            return 0;
-        }
+        //        const int pos = logical_pos_from_raw( params.dwPos );
+        //        for( const Type_<Observer*> p_listener: m_observers ) {
+        //            p_listener->on_new_position( pos );
+        //        }
+        //        return 0;
+        //    }
+        //    return {};
+        //}
 
         static auto creation_style_bits_from( const Bitset_<Styles::Enum> styleset )
             -> WORD
@@ -117,8 +120,53 @@ namespace winapi::gui {
             { return windowclass_name; }
         };
 
+        virtual void on_position_change( const int new_position )
+        {
+            for( const auto p_observer: m_observers ) {
+                p_observer->on_new_position( new_position );
+            }
+        }
+
+        void on_scroll( const UINT code, const int raw_pos )
+        {
+            switch( code ) {
+                case TB_THUMBPOSITION:
+                case TB_THUMBTRACK: {
+                    on_position_change( logical_pos_from_raw( raw_pos ) );
+                    break;
+                }
+                default: {
+                    assert( raw_pos == 0 );     // Per the documentation.
+                    //const int new_pos = (is_zero( raw_pos )? position() : logical_pos_from_raw( raw_pos ));
+                    on_position_change( position() );
+                }
+            }
+        }
+
+        void on_wm_hscroll( const HWND control, const UINT code, const int pos )
+        {
+            assert( control == handle() );
+            on_scroll( code, pos );
+        }
+
+        void on_wm_vscroll( const HWND control, const UINT code, const int pos )
+        {
+            assert( control == handle() );
+            on_scroll( code, pos );
+        }
+
+        auto on_message( const Message& m )
+            -> LRESULT override
+        {
+            switch( m.message_id ) {
+                WINAPI_CASE_WM( HSCROLL, m, on_wm_hscroll );
+                WINAPI_CASE_WM( VSCROLL, m, on_wm_vscroll );
+            }
+            return Base_::on_message( m );
+        }
+
     public:
-        static auto size_for( const int length, const Bitset_<Styles::Enum> styleset )
+        static auto control_size_for( const int length, const Bitset_<Styles::Enum> styleset )
             -> SIZE
         {
             const int thumb_length = 21;    // TODO, e.g. TBM_GETTHUMBLENGTH
@@ -138,7 +186,7 @@ namespace winapi::gui {
             Base_( tag::Wrap(), Api_window_factory().new_api_window(
                 p_parent->handle(),
                 position,
-                size_for( length, styleset ),
+                control_size_for( length, styleset ),
                 creation_style_bits_from( styleset ) )
                 ),
             m_is_reversed( (styles() & TBS_REVERSED) != 0 ),
@@ -166,13 +214,13 @@ namespace winapi::gui {
             
         void add_observer( const Type_<Observer*> p_observer )
         {
-            m_listeners.insert( p_observer );
+            m_observers.insert( p_observer );
             p_observer->on_new_position( position() );
         }
 
         void remove_observer( const Type_<Observer*> p_observer )
         {
-            m_listeners.erase( p_observer );
+            m_observers.erase( p_observer );
         }
 
         auto has_autoticks() const
@@ -203,11 +251,5 @@ namespace winapi::gui {
             m_range = Sequence_<int>( first, last );
         }
     };
-
-    inline auto operator|(
-        const Trackbar_control::Styles::Enum a, const Trackbar_control::Styles::Enum b
-        )
-        -> Trackbar_control::Styles::Enum
-    { return static_cast<Trackbar_control::Styles::Enum>( +a | +b ); }
 
 }  // namespace winapi::gui
