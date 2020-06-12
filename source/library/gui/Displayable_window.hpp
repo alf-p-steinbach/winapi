@@ -46,26 +46,17 @@ namespace winapi::gui {
         }
     };
 
+    struct Scroll_direction{ enum Enum{ none, horizontal, vertical }; };
+
     class Scroll_event_handler
     {
         friend class Displayable_window;    // Caller.
 
-        virtual void on_hscroll( const UINT code, const int pos )
-        {
-            $is_unused( code );  $is_unused( pos );
-        }
-
-        virtual void on_vscroll( const UINT code, const int pos )
-        {
-            $is_unused( code );  $is_unused( pos );
-        }
-    };
-
-    class Reflected_scroll_event_handler
-    {
-        friend class Displayable_window;    // Caller.
-
-        virtual void on_scroll( const UINT code, const int pos ) = 0;
+        virtual void on_scroll(
+            const Scroll_direction::Enum    direction,
+            const UINT                      code,
+            const int                       pos
+            ) = 0;
     };
 
     class Displayable_window:
@@ -181,6 +172,22 @@ namespace winapi::gui {
             $is_unused( id );
         }
 
+        void dispatch_wm_scroll(
+            const HWND                      control,
+            const Scroll_direction::Enum    dir,
+            const UINT                      code,
+            const int                       pos
+            )
+        {
+            if( is_zero( control )  or control == handle() ) {
+                if( const auto p = dynamic_cast<Scroll_event_handler*>( this ) ) {
+                    p->on_scroll( dir, code, pos );
+                }
+            } else {
+                assert( is_zero( control ) or control == handle() );    // Will fire.
+            }
+        }
+
         void on_wm_close()
         {
             close();
@@ -198,32 +205,12 @@ namespace winapi::gui {
 
         void on_wm_hscroll( const HWND control, const UINT code, const int pos )
         {
-            if( is_zero( control ) ) {
-                if( const auto p = dynamic_cast<Scroll_event_handler*>( this ) ) {
-                    p->on_hscroll( code, pos );
-                }
-            } else if( control == handle() ) {
-                if( const auto p = dynamic_cast<Reflected_scroll_event_handler*>( this ) ) {
-                    p->on_scroll( code, pos );
-                }
-            } else {
-                assert( is_zero( control ) or control == handle() );    // Will fire.
-            }
+            dispatch_wm_scroll( control, Scroll_direction::horizontal, code, pos );
         }
 
         void on_wm_vscroll( const HWND control, const UINT code, const int pos )
         {
-            if( is_zero( control ) ) {
-                if( const auto p = dynamic_cast<Scroll_event_handler*>( this ) ) {
-                    p->on_vscroll( code, pos );
-                }
-            } else if( control == handle() ) {
-                if( const auto p = dynamic_cast<Reflected_scroll_event_handler*>( this ) ) {
-                    p->on_scroll( code, pos );
-                }
-            } else {
-                assert( is_zero( control ) or control == handle() );    // Will fire.
-            }
+            dispatch_wm_scroll( control, Scroll_direction::vertical, code, pos );
         }
 
         auto on_message( const Message& m )

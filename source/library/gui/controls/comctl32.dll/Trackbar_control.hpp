@@ -14,7 +14,7 @@ namespace winapi::gui {
 
     class Trackbar_control:
         public Extends_<Control>,
-        public Reflected_scroll_event_handler
+        public Scroll_event_handler
     {
     public:
         static constexpr auto& windowclass_name = TRACKBAR_CLASS;       // "msctls_trackbar32"
@@ -113,9 +113,13 @@ namespace winapi::gui {
             }
         }
 
-        void on_scroll( const UINT code, const int raw_pos )
-            override
+        void on_scroll(
+            const Scroll_direction::Enum    direction,
+            const UINT                      code,
+            const int                       raw_pos
+            ) override
         {
+            $is_unused( direction );
             switch( code ) {
                 case TB_THUMBPOSITION:
                 case TB_THUMBTRACK: {
