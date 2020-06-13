@@ -26,15 +26,15 @@ namespace winapi::gui {
             Styles::ticks_ul, Styles::ticks_dr
             );
 
-        struct Observer
+        struct Observer_interface
         {
             virtual void on_new_position( const int new_position ) = 0;
         };
 
     private:
-        unordered_set<Observer*>    m_observers;
-        Truth                       m_is_reversed;
-        Sequence_<int>              m_range;
+        unordered_set<Observer_interface*>  m_observers;
+        Truth                               m_is_reversed;
+        Sequence_<int>                      m_range;
 
         auto logical_pos_from_raw( int raw_pos ) const
             -> int
@@ -184,13 +184,13 @@ namespace winapi::gui {
             process_message( TBM_SETPOS, true, new_pos );
         }
             
-        void add_observer( const Type_<Observer*> p_observer )
+        void add_observer( const Type_<Observer_interface*> p_observer )
         {
             m_observers.insert( p_observer );
             p_observer->on_new_position( position() );
         }
 
-        void remove_observer( const Type_<Observer*> p_observer )
+        void remove_observer( const Type_<Observer_interface*> p_observer )
         {
             m_observers.erase( p_observer );
         }
