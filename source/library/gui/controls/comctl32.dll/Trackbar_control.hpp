@@ -7,10 +7,13 @@
 
 #include <algorithm>        // std::swap
 #include <unordered_set>    // std::unordered_set
+#include <utility>          // std::exchange
 
 namespace winapi::gui {
-    $use_cppx( Bitset_, is_in, max_, Sequence_, Truth );
-    $use_std( swap, unordered_set );
+    $use_cppx(
+        Bitset_, is_in, max_, No_copy, Sequence_, Truth
+        );
+    $use_std( exchange, swap, unordered_set );
 
     class Trackbar_control:
         public Extends_<Control>,
@@ -29,6 +32,36 @@ namespace winapi::gui {
         struct Observer_interface
         {
             virtual void on_new_position( const int new_position ) = 0;
+        };
+
+        class Observation final
+            : public No_copy
+        {
+            Observer_interface*     m_p_observer;
+            Trackbar_control*       m_p_trackbar;
+
+        public:
+            ~Observation()
+            {
+                if( m_p_trackbar ) {
+                    m_p_trackbar->remove_observer( m_p_observer );
+                }
+            }
+
+            Observation(
+                const Type_<Observer_interface*>    p_observer,
+                const Type_<Trackbar_control*>      p_trackbar
+                ):
+                m_p_observer( p_observer ),
+                m_p_trackbar( p_trackbar )
+            {
+                m_p_trackbar->add_observer( m_p_observer );
+            }
+
+            Observation( Observation&& other ):
+                m_p_observer( exchange( other.m_p_observer, nullptr ) ),
+                m_p_trackbar( exchange( other.m_p_trackbar, nullptr ) )
+            {}
         };
 
     private:
