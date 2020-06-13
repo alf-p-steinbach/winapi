@@ -175,8 +175,12 @@ namespace winapi::gui {
                 );
         }
 
-        void set_position( const int new_pos )
+        void set_position( const int logical_new_pos )
         {
+            const int new_pos = (0?0
+                : m_is_reversed?    m_range.first() + (m_range.last() - logical_new_pos)
+                :                   logical_new_pos
+                ); 
             process_message( TBM_SETPOS, true, new_pos );
         }
             
@@ -217,6 +221,7 @@ namespace winapi::gui {
 
             process_message( TBM_SETRANGE, true, MAKELPARAM( first, last ) );
             m_range = Sequence_<int>( first, last );
+            set_position( first );
         }
     };
 
