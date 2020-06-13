@@ -10,9 +10,7 @@
 #include <utility>          // std::exchange
 
 namespace winapi::gui {
-    $use_cppx(
-        Bitset_, is_in, max_, No_copy, Sequence_, Truth
-        );
+    $use_cppx( Bitset_, is_in, max_, No_copy, Sequence_, Truth );
     $use_std( exchange, swap, unordered_set );
 
     class Trackbar_control:
@@ -92,8 +90,9 @@ namespace winapi::gui {
             const Truth has_ticks_dr        = is_in( styleset, Styles::ticks_dr );
             const Truth has_ticks_bs        = has_ticks_ul and has_ticks_dr;
 
+            // TBS_NOTIFYBEFOREMOVE doesn't produce notifications for scrollwheel, so, WM_xSCROLL.
             // TBS_DOWNISLEFT has no effect, it's an MS bug. TBS_REVERSED is just a flag.
-            WORD bits = TBS_NOTIFYBEFOREMOVE | WORD( +is_vertical*TBS_REVERSED );
+            WORD bits = WORD( +is_vertical )*TBS_REVERSED;
             
             bits |= (is_vertical? TBS_VERT : TBS_HORZ);
             if( not has_manual_ticks ) {
