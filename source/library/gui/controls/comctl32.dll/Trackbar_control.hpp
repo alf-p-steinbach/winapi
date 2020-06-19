@@ -214,12 +214,12 @@ namespace winapi::gui {
                 :                   logical_new_pos
                 ); 
             process_message( TBM_SETPOS, true, new_pos );
+            on_position_change( logical_new_pos );
         }
             
         void add_observer( const Type_<Observer_interface*> p_observer )
         {
             m_observers.insert( p_observer );
-            p_observer->on_new_position( position() );
         }
 
         void remove_observer( const Type_<Observer_interface*> p_observer )
