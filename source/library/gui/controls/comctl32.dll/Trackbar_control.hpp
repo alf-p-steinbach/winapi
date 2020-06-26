@@ -3,47 +3,17 @@
 #include <winapi/gui/Control.hpp>
 #include <winapi-header-wrappers/commctrl-h.hpp>
 
+#include <event-handling-support/Observable_.hpp>
+
 #include <c/stdint.hpp>     // int16_t
 
 #include <algorithm>        // std::swap
-#include <unordered_set>    // std::unordered_set
 #include <utility>          // std::exchange
 
 namespace winapi::gui {
     $use_cppx( Bitset_, is_in, max_, No_copy, Sequence_, Truth );
-    $use_std( exchange, swap, unordered_set );
-
-    template< class Derived_param, class Observer_interface_param >
-    class Observable_:
-        public No_copy
-    {
-    public:
-        using Derived               = Derived_param;
-        using Observer_interface    = Observer_interface_param;
-
-    private:
-        unordered_set<Observer_interface*>  m_observers;
-
-    protected:
-        template< class Func >
-        void for_each_observer( const Func& f )
-        {
-            for( const auto p_observer: m_observers ) {
-                f( p_observer );
-            }
-        }
-
-    public:
-        void add_observer( const Type_<Observer_interface*> p_observer )
-        {
-            m_observers.insert( p_observer );
-        }
-
-        void remove_observer( const Type_<Observer_interface*> p_observer )
-        {
-            m_observers.erase( p_observer );
-        }
-    };
+    $use_std( exchange, swap );
+    $use_from_namespace( event_handling_support, Observable_ );
 
     namespace class_trackbar_control {
         struct Observer_interface
