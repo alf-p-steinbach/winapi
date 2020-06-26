@@ -13,9 +13,49 @@ namespace winapi::gui {
     $use_cppx( Bitset_, is_in, max_, No_copy, Sequence_, Truth );
     $use_std( exchange, swap, unordered_set );
 
+    template< class Derived_param, class Observer_interface_param >
+    class Observable_:
+        public No_copy
+    {
+    public:
+        using Derived               = Derived_param;
+        using Observer_interface    = Observer_interface_param;
+
+    private:
+        unordered_set<Observer_interface*>  m_observers;
+
+    protected:
+        template< class Func >
+        void for_each_observer( const Func& f )
+        {
+            for( const auto p_observer: m_observers ) {
+                f( p_observer );
+            }
+        }
+
+    public:
+        void add_observer( const Type_<Observer_interface*> p_observer )
+        {
+            m_observers.insert( p_observer );
+        }
+
+        void remove_observer( const Type_<Observer_interface*> p_observer )
+        {
+            m_observers.erase( p_observer );
+        }
+    };
+
+    namespace class_trackbar_control {
+        struct Observer_interface
+        {
+            virtual void on_new_position( const int new_position ) = 0;
+        };
+    }  // namespace class_trackbar_control 
+
     class Trackbar_control:
         public Extends_<Control>,
-        public Scroll_event_handler
+        public Scroll_event_handler,
+        public Observable_<Trackbar_control, class_trackbar_control::Observer_interface>
     {
     public:
         static constexpr auto& windowclass_name = TRACKBAR_CLASS;       // "msctls_trackbar32"
@@ -27,13 +67,9 @@ namespace winapi::gui {
             Styles::ticks_ul, Styles::ticks_dr
             );
 
-        struct Observer_interface
-        {
-            virtual void on_new_position( const int new_position ) = 0;
-        };
+        using Observer_interface = class_trackbar_control::Observer_interface;
 
     private:
-        unordered_set<Observer_interface*>  m_observers;
         Truth                               m_is_reversed;
         Sequence_<int>                      m_range;
 
@@ -61,8 +97,8 @@ namespace winapi::gui {
             const Truth has_ticks_bs        = has_ticks_ul and has_ticks_dr;
 
             // TBS_NOTIFYBEFOREMOVE doesn't produce notifications for scrollwheel, so, WM_xSCROLL.
-            // TBS_DOWNISLEFT has no effect, it's an MS bug. TBS_REVERSED is just a flag.
-            WORD bits = WORD( +is_vertical )*TBS_REVERSED;
+            // TBS_REVERSED is just a flag.
+            WORD bits = WORD( +is_vertical )*(TBS_REVERSED | TBS_DOWNISLEFT);
             
             bits |= (is_vertical? TBS_VERT : TBS_HORZ);
             if( not has_manual_ticks ) {
@@ -110,9 +146,9 @@ namespace winapi::gui {
 
         virtual void on_position_change( const int new_position )
         {
-            for( const auto p_observer: m_observers ) {
+            for_each_observer( [=]( const auto p_observer ) {
                 p_observer->on_new_position( new_position );
-            }
+                } );
         }
 
         void on_scroll(
@@ -187,16 +223,6 @@ namespace winapi::gui {
             on_position_change( logical_new_pos );
         }
             
-        void add_observer( const Type_<Observer_interface*> p_observer )
-        {
-            m_observers.insert( p_observer );
-        }
-
-        void remove_observer( const Type_<Observer_interface*> p_observer )
-        {
-            m_observers.erase( p_observer );
-        }
-
         auto has_autoticks() const
             -> Truth
         { return (styles() & TBS_AUTOTICKS) != 0; }
