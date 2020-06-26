@@ -68,7 +68,8 @@ namespace winapi::gui {
 
             // TBS_NOTIFYBEFOREMOVE doesn't produce notifications for scrollwheel, so, WM_xSCROLL.
             // TBS_REVERSED is just a flag.
-            WORD bits = WORD( +is_vertical )*(TBS_REVERSED | TBS_DOWNISLEFT);
+            // TBS_DOWNISLEFT makes left arrow key behave as down arrow key and vice versa.
+            WORD bits = TBS_DOWNISLEFT | WORD( +is_vertical )*TBS_REVERSED;
             
             bits |= (is_vertical? TBS_VERT : TBS_HORZ);
             if( not has_manual_ticks ) {
