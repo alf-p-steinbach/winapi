@@ -43,7 +43,7 @@ namespace winapi::gui {
         Truth                               m_is_reversed;
         Sequence_<int>                      m_range;
 
-        auto logical_pos_from_raw( int raw_pos ) const
+        auto logical_pos_from_raw( const int raw_pos ) const
             -> int
         {
             const int   first       = m_range.first();
