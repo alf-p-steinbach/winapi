@@ -15,17 +15,17 @@ namespace winapi::gui {
     $use_std( exchange, swap );
     $use_from_namespace( event_handling_support, Observable_ );
 
-    namespace class_trackbar_control {
+    namespace ns_trackbar_control {
         struct Observer_interface
         {
             virtual void on_new_position( const int new_position ) = 0;
         };
-    }  // namespace class_trackbar_control 
+    }  // namespace ns_trackbar_control 
 
     class Trackbar_control:
         public Extends_<Control>,
         public Scroll_event_handler,
-        public Observable_<Trackbar_control, class_trackbar_control::Observer_interface>
+        public Observable_<Trackbar_control, ns_trackbar_control::Observer_interface>
     {
     public:
         static constexpr auto& windowclass_name = TRACKBAR_CLASS;       // "msctls_trackbar32"
@@ -37,7 +37,7 @@ namespace winapi::gui {
             Styles::ticks_ul, Styles::ticks_dr
             );
 
-        using Observer_interface = class_trackbar_control::Observer_interface;
+        using Observer_interface = ns_trackbar_control::Observer_interface;
 
     private:
         Truth                               m_is_reversed;
