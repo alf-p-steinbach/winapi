@@ -11,7 +11,7 @@
 #include <utility>          // std::exchange
 
 namespace winapi::gui {
-    $use_cppx( Bitset_, is_in, max_, No_copy, Sequence_, Truth );
+    $use_cppx( With_derived_, Bitset_, is_in, max_, No_copy, Sequence_, Truth );
     $use_std( exchange, swap );
     $use_from_namespace( event_handling_support, Observable_ );
 
@@ -25,7 +25,7 @@ namespace winapi::gui {
     class Trackbar_control:
         public Extends_<Control>,
         public Scroll_event_handler,
-        public Observable_<Trackbar_control, ns_trackbar_control::Observer_interface>
+        public Observable_<With_derived_<Trackbar_control>, ns_trackbar_control::Observer_interface>
     {
     public:
         static constexpr auto& windowclass_name = TRACKBAR_CLASS;       // "msctls_trackbar32"
