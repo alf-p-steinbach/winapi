@@ -101,4 +101,18 @@ namespace winapi::gui {
             or $fail( "TaskDialog failed" );
         return button_id;
     }
+
+    struct Task_dialog_invoker
+    {
+        //TODO: macro $alias_types
+        using Icon                  = td::Icon;
+        using Icon_resource_spec    = td::Icon_resource_spec;
+        using Icon_spec             = td::Icon_spec;
+
+        template< class... Args >
+        auto operator()( Args&&... args ) const
+            -> int
+        { return task_dialog( forward<Args>( args )... ); }
+    };
+
 }  // namespace winapi::gui
